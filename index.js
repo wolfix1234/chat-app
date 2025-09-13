@@ -30,12 +30,19 @@ app.use(express.json());
 
 // CORS middleware
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', 
-    process.env.NODE_ENV === 'production' 
-      ? 'https://oujamlak.ir, https://oujamlak.com' 
-      : 'http://localhost:3000');
+  const allowedOrigins = process.env.NODE_ENV === 'production' 
+    ? ['https://oujamlak.ir', 'https://oujamlak.com']
+    : ['http://localhost:3000'];
+  
+  const origin = req.headers.origin;
+  if (allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
   if (req.method === 'OPTIONS') {
     res.sendStatus(200);
   } else {
@@ -123,7 +130,7 @@ const io = new Server(server, {
   path: '/socket.io/',
   cors: {
     origin: process.env.NODE_ENV === "production"
-      ? ["https://chat-test-app-flame.vercel.app"]
+      ? ["https://oujamlak.ir", "https://oujamlak.com"]
       : ["http://localhost:3000", "http://localhost:3500", "http://127.0.0.1:3000", "http://127.0.0.1:3500", "http://localhost:3001"],
     methods: ["GET", "POST"],
     credentials: true
