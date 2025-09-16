@@ -109,7 +109,10 @@ app.get("/api/messages/:sessionId", async (req, res) => {
   try {
     const { sessionId } = req.params;
     const Message = mongoose.model("Message");
-    const messages = await Message.find({ sessionId })
+    const messages = await Message.find({ 
+      sessionId,
+      messageType: { $ne: 'system' } // Exclude system messages from admin view
+    })
       .sort({ createdAt: 1 })
       .limit(100)
       .exec();
