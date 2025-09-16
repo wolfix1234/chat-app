@@ -154,13 +154,31 @@ io.on("connection", (socket) => {
   
   socket.join(socket.sessionId);
   
-  // If admin, join all active rooms
+  // If admin, join all active rooms and load recent sessions
   if (socket.userType === 'admin') {
     activeUsers.forEach((user, sessionId) => {
       if (user.userType !== 'admin') {
         socket.join(sessionId);
       }
     });
+    
+    // Also join rooms for recent sessions from database newnew
+    setTimeout(async () => {
+      try {
+        const ChatSession = mongoose.model("ChatSession");
+        const now = new Date();
+        const recentSessions = await ChatSession.find({
+          adminVisibility: { $gte: now },
+          userType: { $ne: 'admin' }
+        }).select('sessionId');
+        
+        recentSessions.forEach(session => {
+          socket.join(session.sessionId);
+        });
+      } catch (error) {
+        console.error("Error joining recent sessions:", error);
+      }
+    }, 100);
   }
   
   createOrUpdateSession(socket);
@@ -208,6 +226,17 @@ io.on("connection", (socket) => {
       ...messageData,
       name: messageData.userName,
       room: socket.sessionId
+    });
+    
+    // Also emit to all admin sockets to ensure they receive the message newnew
+    activeUsers.forEach((user) => {
+      if (user.userType === 'admin') {
+        io.to(user.socketId).emit("message", {
+          ...messageData,
+          name: messageData.userName,
+          room: socket.sessionId
+        });
+      }
     });
     
     // Notify all admins of new user message
@@ -259,6 +288,13 @@ io.on("connection", (socket) => {
 
     // Send to the specific room
     io.to(room).emit("message", {
+      ...messageData,
+      name: messageData.userName,
+      room: room
+    });
+    
+    // Also send to the admin who sent it to prevent missing their own message newnew
+    socket.emit("message", {
       ...messageData,
       name: messageData.userName,
       room: room
