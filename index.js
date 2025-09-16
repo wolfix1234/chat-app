@@ -162,7 +162,7 @@ io.on("connection", (socket) => {
       }
     });
     
-    // Also join rooms for recent sessions from database newnew
+    // Also join rooms for recent sessions from database
     setTimeout(async () => {
       try {
         const ChatSession = mongoose.model("ChatSession");
@@ -228,17 +228,6 @@ io.on("connection", (socket) => {
       room: socket.sessionId
     });
     
-    // Also emit to all admin sockets to ensure they receive the message newnew
-    activeUsers.forEach((user) => {
-      if (user.userType === 'admin') {
-        io.to(user.socketId).emit("message", {
-          ...messageData,
-          name: messageData.userName,
-          room: socket.sessionId
-        });
-      }
-    });
-    
     // Notify all admins of new user message
     if (messageData.messageType === 'user') {
       io.emit("newUserMessage", {
@@ -288,13 +277,6 @@ io.on("connection", (socket) => {
 
     // Send to the specific room
     io.to(room).emit("message", {
-      ...messageData,
-      name: messageData.userName,
-      room: room
-    });
-    
-    // Also send to the admin who sent it to prevent missing their own message newnew
-    socket.emit("message", {
       ...messageData,
       name: messageData.userName,
       room: room
