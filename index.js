@@ -349,7 +349,6 @@ async function sendWelcomeIfNeeded(socket) {
     
     if (existingMessages.length === 0) {
       const welcomeMessage = {
-        // text: socket.userId ? "خوش آمدید! چطور میتوانم امروز به شما کمک کنم؟" : "لطفا ابتدا ثبت نام کنید در سایت",
         text: "خوش آمدید! چطور میتوانم امروز به شما کمک کنم؟",
         sessionId: socket.sessionId,
         userId: "system",
@@ -362,6 +361,9 @@ async function sendWelcomeIfNeeded(socket) {
           second: "numeric",
         }).format(new Date())
       };
+      
+      // Save welcome message to database
+      await new Message(welcomeMessage).save();
       
       // Small delay to ensure socket is ready
       setTimeout(() => {
