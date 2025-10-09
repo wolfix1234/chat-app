@@ -62,16 +62,39 @@ app.use((req, res, next) => {
 app.get("/api/admin/sessions", async (req, res) => {
   try {
     const ChatSession = mongoose.model("ChatSession");
+    const Message = mongoose.model("Message");
     const now = new Date();
     
-    const sessions = await ChatSession.find({
-      adminVisibility: { $gte: now },
-      userType: { $ne: 'admin' }
-    })
-    .sort({ lastActivity: -1 })
-    .exec();
+    // Get sessions with actual messages (not just system messages)
+    const sessionsWithMessages = await ChatSession.aggregate([
+      {
+        $match: {
+          adminVisibility: { $gte: now }
+        }
+      },
+      {
+        $lookup: {
+          from: "messages",
+          localField: "sessionId",
+          foreignField: "sessionId",
+          as: "messages"
+        }
+      },
+      {
+        $match: {
+          "messages": {
+            $elemMatch: {
+              messageType: { $in: ["user", "admin"] }
+            }
+          }
+        }
+      },
+      {
+        $sort: { lastActivity: -1 }
+      }
+    ]);
     
-    res.json(sessions);
+    res.json(sessionsWithMessages);
   } catch (error) {
     console.error("Error fetching admin sessions:", error);
     res.status(500).json({ error: "Failed to fetch sessions" });
@@ -343,9 +366,9 @@ async function updateSessionActivity(sessionId, userType) {
 async function sendWelcomeIfNeeded(socket) {
   try {
     // Only send welcome to users, not admins
-    if (socket.userType === 'admin') {
-      return;
-    }
+    // if (socket.userType === 'admin') {
+    //   return;
+    // }
     
     const Message = mongoose.model("Message");
     const existingMessages = await Message.find({ sessionId: socket.sessionId }).limit(1);
